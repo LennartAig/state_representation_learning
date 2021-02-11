@@ -17,10 +17,7 @@ EPS = 1e-8
 
 
 class TRPOAgent(nn.Module):
-    """
-    TODO AT LATER STAGE
-    https://github.com/ikostrikov/pytorch-trpo/blob/master/trpo.py
-    """
+
 
     def __init__(self, encoder=None, **kwargs):
         super(TRPOAgent, self).__init__()
@@ -54,10 +51,7 @@ class TRPOAgent(nn.Module):
         self.actor.apply(weight_init)
         if self.actor.use_encoder:
             self.actor.encoder.copy_conv_weights_from(self.critic.encoder)
-        """
-        self.actor=MLPGaussianActor(obs_dim=kwargs['input_dim_actor'],act_dim=kwargs['action_dim'],hidden_sizes=(64,64),activation=nn.ReLU)
-        self.critic=MLPCritic(obs_dim=kwargs['input_dim_actor'],hidden_sizes=(64,64),activation=nn.ReLU)
-        """
+
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=0.001)
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=0.001)
         self.actor.train()
