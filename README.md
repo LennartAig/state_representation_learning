@@ -1,5 +1,6 @@
 # Visual State Represenstation Learning for Reinforcement Learning - A Framework
 
+Framework to integrate different state representation learning methods with reinforcement learning methods.
 ## Installation
 
 Depending on which Environments are intended to use go to respective section to first install the prerequisites.
