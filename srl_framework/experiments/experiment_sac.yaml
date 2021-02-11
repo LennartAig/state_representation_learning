@@ -1,0 +1,34 @@
+RL:
+    NAME: 'sac'
+
+    CRITIC:
+        ACTIVATION: "ReLU"
+        ARCHITECTURE: [64,64]
+        INIT: "orthogonal"
+        LEARNING_RATE: 0.001
+        WEIGHT_DECAY: 0
+        MAX_GRAD_NORM: 0
+
+        DROPOUT: False
+        BATCHNORM: False
+        EPSILON: 0.99
+    ACTOR:
+        ACTIVATION: "ReLU"
+        ARCHITECTURE: [64,64]
+        INIT: "orthogonal"
+        LEARNING_RATE: 0.001
+        WEIGHT_DECAY: 0
+        MAX_GRAD_NORM: 0
+
+        DROPOUT: False
+        BATCHNORM: False
+        EPSILON: 0.99
+        DETACH_FOR_CNN_UPDATE: True
+    
+    BATCH_SIZE: 128
+    UPDATE_EVERY: 1
+    UPDATE_AFTER: 1000
+    DELAYED_START: 1100
+
+SRL:
+    USE: False

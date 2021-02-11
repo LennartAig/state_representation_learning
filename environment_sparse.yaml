@@ -1,0 +1,34 @@
+name: srl_framework
+channels:
+  - anaconda
+  - pytorch
+  - defaults
+  - conda-forge
+dependencies:
+  - pip
+  - python=3.8
+  - pytorch=1.7
+  - torchvision
+  - box2d-py
+  - gym
+  - opencv=4.2.0
+  - scipy
+  - pyzmq
+  - tensorboard
+  - mpi4py
+  - joblib
+  - scikit-image
+  - pytest
+  - patchelf
+  - pip:
+    - dm-control
+    - omgifol
+    - mujoco-py==2.0.2.8
+    - yacs
+    - pygeometry
+    - git+git://github.com/denisyarats/dmc2gym.git
+    - procgen
+    - tensorboardX
+    - pytest
+    - kornia
+prefix: /home/user/miniconda3/envs/srl_framework
