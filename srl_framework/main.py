@@ -1,22 +1,21 @@
 import argparse
 from srl_framework.trainer import Trainer
 
-
 def parse_args():
     parser = argparse.ArgumentParser()
     # experiment file
     parser.add_argument(
-        "--experiment_file", default="experiment_ppo2_drq.yaml", type=str
+        "--experiment_file", default="experiment_sac.yaml", type=str
     )
     # environment
     parser.add_argument("--env_type", default="dmc")
     parser.add_argument("--domain_name", default="cartpole")
     parser.add_argument("--task_name", default="swingup")
-    parser.add_argument("--obs_type", default="pixels")
+    parser.add_argument("--obs_type", default="state")
     parser.add_argument("--normalize_obs", default=False)
     parser.add_argument("--input_image_size", default=84, type=int)
     parser.add_argument("--action_repeat", default=4, type=int)
-    parser.add_argument("--frame_stack", default=3, type=int)
+    parser.add_argument("--frame_stack", default=1, type=int)
     parser.add_argument("--render_image_size", default=100, type=int)
     parser.add_argument("--cameras", default=[8, 10], type=int)
     parser.add_argument("--reward_type", default="dense")

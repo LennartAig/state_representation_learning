@@ -135,5 +135,7 @@ log/**/*.mp4
 srl_framework/rl/temp/
 
 
+__pycache__/
+*.pyc
 # exp files
 #srl_framework/experiments/*.yaml

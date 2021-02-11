@@ -1,12 +1,17 @@
 # Visual State Represenstation Learning for Reinforcement Learning - A Framework
 
-Framework to integrate different state representation learning methods with reinforcement learning methods.
+Framework to integrate different state representation learning methods with reinforcement learning methods.pip
 ## Installation
 
 Depending on which Environments are intended to use go to respective section to first install the prerequisites.
 
 1. Pull this repo with submodules
 2. Create conda env using environment.yaml
+3. Install module in root folder by: 
+```
+pip install -e .
+```
+
 
 ### 1) Mujoco Install and Prerequisites
 Mujoco is needed for the following environments:
