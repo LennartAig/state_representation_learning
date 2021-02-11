@@ -7,33 +7,56 @@ from srl_framework.srl.models.base import BaseModelSRL
 from srl_framework.utils.encoder import CnnEncoder, ResNetEncoder, PixelEncoder
 from srl_framework.utils.decoder import CnnDecoder, ResNetDecoder, PixelDecoder
 
+
 class Encoder(BaseModelSRL):
-    def __init__(self, img_channels, state_dim, encoder_args=None, lr=0.001,
-                device=None, img_size=84, normalized_obs=True):
+    def __init__(
+        self,
+        img_channels,
+        state_dim,
+        encoder_args=None,
+        lr=0.001,
+        device=None,
+        img_size=84,
+        normalized_obs=True,
+    ):
         super(Encoder, self).__init__()
-        
-        if encoder_args['architecture'] == 'impala':
+
+        if encoder_args["architecture"] == "impala":
             self.encoder = ResNetEncoder(
-                img_channels = img_channels, feature_dim=state_dim, img_size = img_size, normalized_obs=normalized_obs,
-                squash_latent=encoder_args['squash_latent'], normalize=encoder_args['normalize'],
-                conv_init=encoder_args['conv_init'], linear_init=encoder_args['linear_init'])
-        elif encoder_args['architecture'] == 'standard':
-            self.encoder = PixelEncoder((img_channels,img_size,img_size),state_dim)
+                img_channels=img_channels,
+                feature_dim=state_dim,
+                img_size=img_size,
+                normalized_obs=normalized_obs,
+                squash_latent=encoder_args["squash_latent"],
+                normalize=encoder_args["normalize"],
+                conv_init=encoder_args["conv_init"],
+                linear_init=encoder_args["linear_init"],
+            )
+        elif encoder_args["architecture"] == "standard":
+            self.encoder = PixelEncoder((img_channels, img_size, img_size), state_dim)
         else:
             self.encoder = CnnEncoder(
-                img_channels = img_channels, feature_dim=state_dim, img_size = img_size,
-                architecture=encoder_args['architecture'], normalized_obs=normalized_obs,
-                squash_latent=encoder_args['squash_latent'], normalize=encoder_args['normalize'],
-                conv_init=encoder_args['conv_init'], linear_init=encoder_args['linear_init'],
-                activation=encoder_args['activation'], batchnorm=encoder_args['batchnorm'], 
-                pool=encoder_args['pool'], dropout=encoder_args['dropout'])
+                img_channels=img_channels,
+                feature_dim=state_dim,
+                img_size=img_size,
+                architecture=encoder_args["architecture"],
+                normalized_obs=normalized_obs,
+                squash_latent=encoder_args["squash_latent"],
+                normalize=encoder_args["normalize"],
+                conv_init=encoder_args["conv_init"],
+                linear_init=encoder_args["linear_init"],
+                activation=encoder_args["activation"],
+                batchnorm=encoder_args["batchnorm"],
+                pool=encoder_args["pool"],
+                dropout=encoder_args["dropout"],
+            )
 
         self.to(self.device)
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
         self.train()
 
     def get_state(self, obs, grad=True):
-        state = self.encode(obs, grad=grad)   
+        state = self.encode(obs, grad=grad)
         return state
 
     def encode(self, x, grad=True):
@@ -47,48 +70,80 @@ class Encoder(BaseModelSRL):
 
 
 class AE(BaseModelSRL):
-    def __init__(self, img_channels, state_dim, encoder_args=None, lr=0.001,
-                device=None, decoder_dim = 0, img_size=84, normalized_obs=True):
+    def __init__(
+        self,
+        img_channels,
+        state_dim,
+        encoder_args=None,
+        lr=0.001,
+        device=None,
+        decoder_dim=0,
+        img_size=84,
+        normalized_obs=True,
+    ):
         super(AE, self).__init__()
         self.decoder_dim = state_dim if decoder_dim == 0 else decoder_dim
-        
-        if encoder_args['architecture'] == 'impala':
+
+        if encoder_args["architecture"] == "impala":
             self.encoder = ResNetEncoder(
-                img_channels = img_channels, feature_dim=state_dim, img_size = img_size, normalized_obs=normalized_obs,
-                squash_latent=encoder_args['squash_latent'], normalize=encoder_args['normalize'],
-                conv_init=encoder_args['conv_init'], linear_init=encoder_args['linear_init'])
+                img_channels=img_channels,
+                feature_dim=state_dim,
+                img_size=img_size,
+                normalized_obs=normalized_obs,
+                squash_latent=encoder_args["squash_latent"],
+                normalize=encoder_args["normalize"],
+                conv_init=encoder_args["conv_init"],
+                linear_init=encoder_args["linear_init"],
+            )
 
             self.decoder = ResNetDecoder(
-                feature_dim= self.decoder_dim, in_dim=self.encoder.output_dim,
-                out_dim=img_channels, img_size = img_size)
-        elif encoder_args['architecture'] == 'standard':
-            self.encoder = PixelEncoder((img_channels,img_size,img_size),state_dim)
-            self.decoder = PixelDecoder((img_channels,img_size,img_size),state_dim)
+                feature_dim=self.decoder_dim,
+                in_dim=self.encoder.output_dim,
+                out_dim=img_channels,
+                img_size=img_size,
+            )
+        elif encoder_args["architecture"] == "standard":
+            self.encoder = PixelEncoder((img_channels, img_size, img_size), state_dim)
+            self.decoder = PixelDecoder((img_channels, img_size, img_size), state_dim)
         else:
             self.encoder = CnnEncoder(
-                img_channels = img_channels, feature_dim=state_dim, img_size = img_size,
-                architecture=encoder_args['architecture'], normalized_obs=normalized_obs,
-                squash_latent=encoder_args['squash_latent'], normalize=encoder_args['normalize'],
-                conv_init=encoder_args['conv_init'], linear_init=encoder_args['linear_init'],
-                activation=encoder_args['activation'], batchnorm=encoder_args['batchnorm'], 
-                pool=encoder_args['pool'], dropout=encoder_args['dropout'])
+                img_channels=img_channels,
+                feature_dim=state_dim,
+                img_size=img_size,
+                architecture=encoder_args["architecture"],
+                normalized_obs=normalized_obs,
+                squash_latent=encoder_args["squash_latent"],
+                normalize=encoder_args["normalize"],
+                conv_init=encoder_args["conv_init"],
+                linear_init=encoder_args["linear_init"],
+                activation=encoder_args["activation"],
+                batchnorm=encoder_args["batchnorm"],
+                pool=encoder_args["pool"],
+                dropout=encoder_args["dropout"],
+            )
 
             self.decoder = CnnDecoder(
-                feature_dim=self.decoder_dim, in_dim=self.encoder.output_dim, out_dim=img_channels,
-                architecture=encoder_args['architecture'],
-                conv_init=encoder_args['conv_init'], linear_init=encoder_args['linear_init'],
-                activation=encoder_args['activation'], batchnorm=encoder_args['batchnorm'], 
-                pool=encoder_args['pool'], dropout=encoder_args['dropout'])
-        
+                feature_dim=self.decoder_dim,
+                in_dim=self.encoder.output_dim,
+                out_dim=img_channels,
+                architecture=encoder_args["architecture"],
+                conv_init=encoder_args["conv_init"],
+                linear_init=encoder_args["linear_init"],
+                activation=encoder_args["activation"],
+                batchnorm=encoder_args["batchnorm"],
+                pool=encoder_args["pool"],
+                dropout=encoder_args["dropout"],
+            )
+
         self.to(self.device)
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
         self.train()
-        
+
     def get_state(self, obs, detach=False):
         state = self.encode(obs, detach=detach)
         return state
 
-    def encode(self, x, detach = False):
+    def encode(self, x, detach=False):
         z = self.encoder(x, detach=detach)
         return z
 
@@ -101,59 +156,95 @@ class AE(BaseModelSRL):
         decoded = self.decode(z)
         return decoded, z
 
+
 class VAE(BaseModelSRL):
-    def __init__(self, img_channels, state_dim, encoder_args=None, lr=0.001, beta = 1.0,
-                device=None, decoder_dim = 0, img_size=84, normalized_obs=True):
+    def __init__(
+        self,
+        img_channels,
+        state_dim,
+        encoder_args=None,
+        lr=0.001,
+        beta=1.0,
+        device=None,
+        decoder_dim=0,
+        img_size=84,
+        normalized_obs=True,
+    ):
         super(VAE, self).__init__()
         self.decoder_dim = state_dim if decoder_dim == 0 else decoder_dim
         self.beta = beta
-        
-        if encoder_args['architecture'] == 'impala':
+
+        if encoder_args["architecture"] == "impala":
             self.encoder = ResNetEncoder(
-                img_channels = img_channels, feature_dim=2*state_dim, img_size = img_size, normalized_obs=normalized_obs,
-                squash_latent=encoder_args['squash_latent'], normalize=encoder_args['normalize'],
-                conv_init=encoder_args['conv_init'], linear_init=encoder_args['linear_init'])
+                img_channels=img_channels,
+                feature_dim=2 * state_dim,
+                img_size=img_size,
+                normalized_obs=normalized_obs,
+                squash_latent=encoder_args["squash_latent"],
+                normalize=encoder_args["normalize"],
+                conv_init=encoder_args["conv_init"],
+                linear_init=encoder_args["linear_init"],
+            )
 
             self.decoder = ResNetDecoder(
-                feature_dim= self.decoder_dim, in_dim=self.encoder.output_dim,
-                out_dim=img_channels, img_size = img_size)
-        elif encoder_args['architecture'] == 'standard':
-            self.encoder = PixelEncoder((img_channels,img_size,img_size),state_dim,vae=True)
-            print(int(state_dim/2))
-            self.decoder = PixelDecoder((img_channels,img_size,img_size),state_dim)
+                feature_dim=self.decoder_dim,
+                in_dim=self.encoder.output_dim,
+                out_dim=img_channels,
+                img_size=img_size,
+            )
+        elif encoder_args["architecture"] == "standard":
+            self.encoder = PixelEncoder(
+                (img_channels, img_size, img_size), state_dim, vae=True
+            )
+            print(int(state_dim / 2))
+            self.decoder = PixelDecoder((img_channels, img_size, img_size), state_dim)
         else:
             self.encoder = CnnEncoder(
-                img_channels = img_channels, feature_dim=2*state_dim, img_size = img_size,
-                architecture=encoder_args['architecture'], normalized_obs=normalized_obs,
-                squash_latent=encoder_args['squash_latent'], normalize=encoder_args['normalize'],
-                conv_init=encoder_args['conv_init'], linear_init=encoder_args['linear_init'],
-                activation=encoder_args['activation'], batchnorm=encoder_args['batchnorm'], 
-                pool=encoder_args['pool'], dropout=encoder_args['dropout'])
+                img_channels=img_channels,
+                feature_dim=2 * state_dim,
+                img_size=img_size,
+                architecture=encoder_args["architecture"],
+                normalized_obs=normalized_obs,
+                squash_latent=encoder_args["squash_latent"],
+                normalize=encoder_args["normalize"],
+                conv_init=encoder_args["conv_init"],
+                linear_init=encoder_args["linear_init"],
+                activation=encoder_args["activation"],
+                batchnorm=encoder_args["batchnorm"],
+                pool=encoder_args["pool"],
+                dropout=encoder_args["dropout"],
+            )
 
             self.decoder = CnnDecoder(
-                feature_dim=self.decoder_dim, in_dim=self.encoder.output_dim, out_dim=img_channels,
-                architecture=encoder_args['architecture'],
-                conv_init=encoder_args['conv_init'], linear_init=encoder_args['linear_init'],
-                activation=encoder_args['activation'], batchnorm=encoder_args['batchnorm'], 
-                pool=encoder_args['pool'], dropout=encoder_args['dropout'])
-        
+                feature_dim=self.decoder_dim,
+                in_dim=self.encoder.output_dim,
+                out_dim=img_channels,
+                architecture=encoder_args["architecture"],
+                conv_init=encoder_args["conv_init"],
+                linear_init=encoder_args["linear_init"],
+                activation=encoder_args["activation"],
+                batchnorm=encoder_args["batchnorm"],
+                pool=encoder_args["pool"],
+                dropout=encoder_args["dropout"],
+            )
+
         self.h_dim = state_dim
         self.to(self.device)
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
         self.train()
 
-    def get_state(self, obs, detach = False, deterministic = True):
-        z,_ ,_ = self.encode(obs, detach=detach)
+    def get_state(self, obs, detach=False, deterministic=True):
+        z, _, _ = self.encode(obs, detach=detach)
         return z
 
-    def encode(self, obs, detach = False):
+    def encode(self, obs, detach=False):
         z, mu, logvar = self.encoder.forward_latent(obs, detach=detach)
         return z, mu, logvar
 
     def decode(self, z):
         """
         """
-        #hidden_var = self.decoder_linear(z)
+        # hidden_var = self.decoder_linear(z)
         x = self.decoder(z)
         return x
 
@@ -173,44 +264,50 @@ class VAE(BaseModelSRL):
         """
         """
         z, mu, logvar = self.encode(x)
-        #z = self.reparameterize(mu, logvar)
+        # z = self.reparameterize(mu, logvar)
         decoded = self.decode(z)
         return decoded, mu, logvar, z
+
 
 class VectorQuantizer(nn.Module):
     """
     Reference:
     [1] https://github.com/deepmind/sonnet/blob/v2/sonnet/src/nets/vqvae.py
     """
-    def __init__(self,
-                 num_embeddings: int,
-                 embedding_dim: int,
-                 state_size: int = 50,
-                 beta: float = 0.25):
+
+    def __init__(
+        self,
+        num_embeddings: int,
+        embedding_dim: int,
+        state_size: int = 50,
+        beta: float = 0.25,
+    ):
         super(VectorQuantizer, self).__init__()
         self.K = num_embeddings
         self.D = embedding_dim
         self.beta = beta
         self.embedding = nn.Embedding(self.K, self.D)
         self.embedding.weight.data.uniform_(-1 / self.K, 1 / self.K)
-        # (H,W): 64 -> (16,16) 84 -> (21,21) 
-
+        # (H,W): 64 -> (16,16) 84 -> (21,21)
 
     def forward(self, latents):
-        latents = latents.permute(0, 2, 3, 1).contiguous()  # [B x D x H x W] -> [B x H x W x D]
+        latents = latents.permute(
+            0, 2, 3, 1
+        ).contiguous()  # [B x D x H x W] -> [B x H x W x D]
         latents_shape = latents.shape
 
         flat_latents = latents.view(-1, self.D)  # [BHW x D]
 
-
         # Compute L2 distance between latents and embedding weights
-        dist = torch.sum(flat_latents ** 2, dim=1, keepdim=True) + \
-               torch.sum(self.embedding.weight ** 2, dim=1) - \
-               2 * torch.matmul(flat_latents, self.embedding.weight.t())  # [BHW x K]
+        dist = (
+            torch.sum(flat_latents ** 2, dim=1, keepdim=True)
+            + torch.sum(self.embedding.weight ** 2, dim=1)
+            - 2 * torch.matmul(flat_latents, self.embedding.weight.t())
+        )  # [BHW x K]
 
         # Get the encoding that has the min distance
         encoding_inds = torch.argmin(dist, dim=1).unsqueeze(1)  # [BHW, 1]
-        state = encoding_inds.view(latents_shape[0],-1)
+        state = encoding_inds.view(latents_shape[0], -1)
 
         # Convert to one-hot encodings
         device = latents.device
@@ -218,7 +315,9 @@ class VectorQuantizer(nn.Module):
         encoding_one_hot.scatter_(1, encoding_inds, 1)  # [BHW x K]
 
         # Quantize the latents
-        quantized_latents = torch.matmul(encoding_one_hot, self.embedding.weight)  # [BHW, D]
+        quantized_latents = torch.matmul(
+            encoding_one_hot, self.embedding.weight
+        )  # [BHW, D]
         quantized_latents = quantized_latents.view(latents_shape)  # [B x H x W x D]
 
         # Compute the VQ Losses
@@ -230,19 +329,21 @@ class VectorQuantizer(nn.Module):
         # Add the residue back to the latents
         quantized_latents = latents + (quantized_latents - latents).detach()
 
-        return quantized_latents.permute(0, 3, 1, 2).contiguous(), vq_loss, state  # [B x D x H x W]
+        return (
+            quantized_latents.permute(0, 3, 1, 2).contiguous(),
+            vq_loss,
+            state,
+        )  # [B x D x H x W]
+
 
 class ResidualLayer(nn.Module):
-
-    def __init__(self,
-                 in_channels: int,
-                 out_channels: int):
+    def __init__(self, in_channels: int, out_channels: int):
         super(ResidualLayer, self).__init__()
-        self.resblock = nn.Sequential(nn.Conv2d(in_channels, out_channels,
-                                                kernel_size=3, padding=1, bias=False),
-                                      nn.ReLU(True),
-                                      nn.Conv2d(out_channels, out_channels,
-                                                kernel_size=1, bias=False))
+        self.resblock = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
+            nn.ReLU(True),
+            nn.Conv2d(out_channels, out_channels, kernel_size=1, bias=False),
+        )
 
     def forward(self, input):
         return input + self.resblock(input)
@@ -254,17 +355,19 @@ class VQ_VAE(BaseModelSRL):
     [2] https://github.com/AntixK/PyTorch-VAE/blob/master/models/vq_vae.py
     """
 
-    def __init__(self,
-                 in_channels: int = 3,
-                 state_size: int = 50, 
-                 embedding_dim: int = 64,
-                 num_embeddings: int = 256,
-                 params = None,
-                 device=None,
-                 hidden_dims: list = None,
-                 beta: float = 0.25,
-                 img_size: int = 64,
-                 **kwargs) -> None:
+    def __init__(
+        self,
+        in_channels: int = 3,
+        state_size: int = 50,
+        embedding_dim: int = 64,
+        num_embeddings: int = 256,
+        params=None,
+        device=None,
+        hidden_dims: list = None,
+        beta: float = 0.25,
+        img_size: int = 64,
+        **kwargs
+    ) -> None:
         super(VQ_VAE, self).__init__()
 
         self.embedding_dim = embedding_dim
@@ -272,7 +375,7 @@ class VQ_VAE(BaseModelSRL):
         self.img_size = img_size
         self.beta = beta
         self.in_channels = in_channels
-        #self.output_layer = nn.Linear(h_dim, feature_dim)
+        # self.output_layer = nn.Linear(h_dim, feature_dim)
 
         modules = []
         if hidden_dims is None:
@@ -282,17 +385,23 @@ class VQ_VAE(BaseModelSRL):
         for h_dim in hidden_dims:
             modules.append(
                 nn.Sequential(
-                    nn.Conv2d(in_channels, out_channels=h_dim,
-                              kernel_size=4, stride=2, padding=1),
-                    nn.LeakyReLU())
+                    nn.Conv2d(
+                        in_channels,
+                        out_channels=h_dim,
+                        kernel_size=4,
+                        stride=2,
+                        padding=1,
+                    ),
+                    nn.LeakyReLU(),
+                )
             )
             in_channels = h_dim
 
         modules.append(
             nn.Sequential(
-                nn.Conv2d(in_channels, in_channels,
-                          kernel_size=3, stride=1, padding=1),
-                nn.LeakyReLU())
+                nn.Conv2d(in_channels, in_channels, kernel_size=3, stride=1, padding=1),
+                nn.LeakyReLU(),
+            )
         )
 
         for _ in range(6):
@@ -301,27 +410,24 @@ class VQ_VAE(BaseModelSRL):
 
         modules.append(
             nn.Sequential(
-                nn.Conv2d(in_channels, embedding_dim,
-                          kernel_size=1, stride=1),
-                nn.LeakyReLU())
+                nn.Conv2d(in_channels, embedding_dim, kernel_size=1, stride=1),
+                nn.LeakyReLU(),
+            )
         )
 
         self.encoder = nn.Sequential(*modules)
 
-        self.vq_layer = VectorQuantizer(num_embeddings,
-                                        embedding_dim,
-                                        self.beta)
+        self.vq_layer = VectorQuantizer(num_embeddings, embedding_dim, self.beta)
 
         # Build Decoder
         modules = []
         modules.append(
             nn.Sequential(
-                nn.Conv2d(embedding_dim,
-                          hidden_dims[-1],
-                          kernel_size=3,
-                          stride=1,
-                          padding=1),
-                nn.LeakyReLU())
+                nn.Conv2d(
+                    embedding_dim, hidden_dims[-1], kernel_size=3, stride=1, padding=1
+                ),
+                nn.LeakyReLU(),
+            )
         )
 
         for _ in range(6):
@@ -334,29 +440,37 @@ class VQ_VAE(BaseModelSRL):
         for i in range(len(hidden_dims) - 1):
             modules.append(
                 nn.Sequential(
-                    nn.ConvTranspose2d(hidden_dims[i],
-                                       hidden_dims[i + 1],
-                                       kernel_size=4,
-                                       stride=2,
-                                       padding=1),
-                    nn.LeakyReLU())
+                    nn.ConvTranspose2d(
+                        hidden_dims[i],
+                        hidden_dims[i + 1],
+                        kernel_size=4,
+                        stride=2,
+                        padding=1,
+                    ),
+                    nn.LeakyReLU(),
+                )
             )
 
         modules.append(
             nn.Sequential(
-                nn.ConvTranspose2d(hidden_dims[-1],
-                                   out_channels=self.in_channels,
-                                   kernel_size=4,
-                                   stride=2, padding=1),
-                nn.Tanh()))
+                nn.ConvTranspose2d(
+                    hidden_dims[-1],
+                    out_channels=self.in_channels,
+                    kernel_size=4,
+                    stride=2,
+                    padding=1,
+                ),
+                nn.Tanh(),
+            )
+        )
 
         self.decoder = nn.Sequential(*modules)
 
         self.to(self.device)
-        self.optimizer = optim.Adam(self.parameters(), lr=0.001) # TODO
+        self.optimizer = optim.Adam(self.parameters(), lr=0.001)  # TODO
         self.train()
 
-    def get_state(self, obs, grad = True, deterministic = False):
+    def get_state(self, obs, grad=True, deterministic=False):
         if grad:
             encoding = self.encode(obs)[0]
             quantized_inputs, vq_loss, state = self.vq_layer(encoding)
@@ -364,7 +478,7 @@ class VQ_VAE(BaseModelSRL):
             with torch.no_grad():
                 encoding = self.encode(obs)[0]
             quantized_inputs, vq_loss, state = self.vq_layer(encoding)
-        state = state.float()/255.0
+        state = state.float() / 255.0
         return state
 
     def encode(self, input):
@@ -393,9 +507,7 @@ class VQ_VAE(BaseModelSRL):
         quantized_inputs, vq_loss, state = self.vq_layer(encoding)
         return self.decode(quantized_inputs), vq_loss, state
 
-    def loss_function(self,
-                      *args,
-                      **kwargs) -> dict:
+    def loss_function(self, *args, **kwargs) -> dict:
         """
         :param args:
         :param kwargs:
@@ -408,14 +520,10 @@ class VQ_VAE(BaseModelSRL):
         recons_loss = F.mse_loss(recons, input)
 
         loss = recons_loss + vq_loss
-        return {'loss': loss,
-                'Reconstruction_Loss': recons_loss,
-                'VQ_Loss':vq_loss}
+        return {"loss": loss, "Reconstruction_Loss": recons_loss, "VQ_Loss": vq_loss}
 
-    def sample(self,
-               num_samples: int,
-               current_device: [int, str], **kwargs):
-        raise Warning('VQVAE sampler is not implemented.')
+    def sample(self, num_samples: int, current_device: [int, str], **kwargs):
+        raise Warning("VQVAE sampler is not implemented.")
 
     def generate(self, x, **kwargs):
         """
@@ -425,16 +533,25 @@ class VQ_VAE(BaseModelSRL):
         """
 
         return self.forward(x)[0]
-        
+
+
 class VAE_2(BaseModelSRL):
     """
     """
-    def __init__(self, img_channels, state_dim, param, device = None):
+
+    def __init__(self, img_channels, state_dim, param, device=None):
         super(VAE_2, self).__init__()
-        self.encoder = CnnEncoder(img_channels = img_channels, feature_dim=2*state_dim, params=param.CNN)
-        self.decoder = CnnDecoder(feature_dim=state_dim, in_dim=self.encoder.output_dim, out_dim=img_channels, params=param.CNN)
+        self.encoder = CnnEncoder(
+            img_channels=img_channels, feature_dim=2 * state_dim, params=param.CNN
+        )
+        self.decoder = CnnDecoder(
+            feature_dim=state_dim,
+            in_dim=self.encoder.output_dim,
+            out_dim=img_channels,
+            params=param.CNN,
+        )
         self.layer_norm = nn.LayerNorm(state_dim)
-        
+
         # Set Model to device
         self.to(self.device)
         self.state_size = state_dim
@@ -445,7 +562,7 @@ class VAE_2(BaseModelSRL):
         self.squashed_latent = param.SQUASHED_LATENT
         self.train
 
-    def get_state(self, obs, grad = True, deterministic = False):
+    def get_state(self, obs, grad=True, deterministic=False):
         """
         Input:
         ------
@@ -469,23 +586,23 @@ class VAE_2(BaseModelSRL):
                 else:
                     mu, logvar = self.encode(obs)
                     state = self.reparameterize(mu, logvar)
-        
-        #if self.normalized_latent: state = self.layer_norm(state) 
-        #if self.squashed_latent: state = torch.tanh(state)
+
+        # if self.normalized_latent: state = self.layer_norm(state)
+        # if self.squashed_latent: state = torch.tanh(state)
         return state
 
     def encode(self, x):
         """
         """
         hidden_var = self.encoder(x)
-        mu = hidden_var[:,self.state_size]
+        mu = hidden_var[:, self.state_size]
         logvar = self.logvar_net(hidden_var)
         if self.normalized_latent:
-            mu = self.layer_norm(mu) 
+            mu = self.layer_norm(mu)
             logvar = self.layer_norm(logvar)
         if self.squashed_latent:
-            mu = torch.tanh(mu) 
-            logvar = torch.tanh(logvar) 
+            mu = torch.tanh(mu)
+            logvar = torch.tanh(logvar)
         return mu, logvar
 
     def decode(self, z):
@@ -514,5 +631,3 @@ class VAE_2(BaseModelSRL):
         z = self.reparameterize(mu, logvar)
         decoded = self.decode(z)
         return decoded, mu, logvar
-
-

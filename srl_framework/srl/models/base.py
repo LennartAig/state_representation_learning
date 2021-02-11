@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+
 class BaseModelSRL(nn.Module):
     """
     Base Class for a SRL network

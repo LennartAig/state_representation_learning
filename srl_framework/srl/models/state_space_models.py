@@ -24,7 +24,7 @@ class BaseRecurrentModel(nn.Module):
         self.state_dim = state_dim
         self.seq_len = seq_len
         self.device = device
-        
+
     def forward(self, state, action):
         """
         Predict next state given current state and action
@@ -37,11 +37,14 @@ class BaseRecurrentModel(nn.Module):
         ------
             - state_tp1 (torch tensor)
         """
-        
+
         return self.forward_net(concat)
 
+
 class WorldModel(BaseRecurrentModel):
-    def __init__(self, state_dim, action_dim, hidden_dim, num_layers_rnn, device, seq_len=2):
+    def __init__(
+        self, state_dim, action_dim, hidden_dim, num_layers_rnn, device, seq_len=2
+    ):
         """        
         Parameters:
         ------
@@ -49,19 +52,25 @@ class WorldModel(BaseRecurrentModel):
             - action_dim (int)
             - params
         """
-        super(WorldModel, self).__init__(state_dim+action_dim, hidden_dim, state_dim, seq_len, device)
-        self.fc1 = nn.Linear(self.input_dim, hidden_dim)        
-        self.recurrent_net = nn.LSTM(hidden_dim, hidden_dim, num_layers_rnn, batch_first=True)
+        super(WorldModel, self).__init__(
+            state_dim + action_dim, hidden_dim, state_dim, seq_len, device
+        )
+        self.fc1 = nn.Linear(self.input_dim, hidden_dim)
+        self.recurrent_net = nn.LSTM(
+            hidden_dim, hidden_dim, num_layers_rnn, batch_first=True
+        )
         self.fc2 = nn.Linear(hidden_dim, state_dim)
         self.rnn_hidden_dim = hidden_dim
         self.num_layers = num_layers_rnn
-        self.hidden = (torch.randn(self.num_layers, 1,  self.hidden_dim, device=self.device), 
-                torch.randn(self.num_layers, 1,  self.hidden_dim, device=self.device))
+        self.hidden = (
+            torch.randn(self.num_layers, 1, self.hidden_dim, device=self.device),
+            torch.randn(self.num_layers, 1, self.hidden_dim, device=self.device),
+        )
 
         self.to(self.device)
 
-        self.optimizer = optim.Adam(self.parameters(), lr=0.01) 
-    
+        self.optimizer = optim.Adam(self.parameters(), lr=0.01)
+
     def forward(self, state, action):
         """
         Predict action given current state
@@ -74,10 +83,13 @@ class WorldModel(BaseRecurrentModel):
         ------
             - 
         """
-        state = torch.cat([state,action],dim=-1)#.unsqueeze(0)
-        if state.ndim <3: state = state.unsqueeze(0)
+        state = torch.cat([state, action], dim=-1)  # .unsqueeze(0)
+        if state.ndim < 3:
+            state = state.unsqueeze(0)
         state = self.fc1(state)
-        h, _ = self.recurrent_net(state)# if rnn_hidden == None else self.recurrent_net(state)
+        h, _ = self.recurrent_net(
+            state
+        )  # if rnn_hidden == None else self.recurrent_net(state)
         state_tp1_pred = self.fc2(h)
         return state_tp1_pred, 0
 
@@ -96,9 +108,11 @@ class WorldModel(BaseRecurrentModel):
         """
         if rnn_hidden:
             rnn_hidden = self.hidden
-        if action.ndim < 2: action = action.unsqueeze(0)
-        state = torch.cat([state,action],dim=-1)
-        if state.ndim <3: state = state.unsqueeze(0)
+        if action.ndim < 2:
+            action = action.unsqueeze(0)
+        state = torch.cat([state, action], dim=-1)
+        if state.ndim < 3:
+            state = state.unsqueeze(0)
         state = self.fc1(state)
         h, hidden = self.recurrent_net(state)
         return hidden
@@ -106,8 +120,11 @@ class WorldModel(BaseRecurrentModel):
     def init_hidden(self):
         """
         """
-        self.hidden = (torch.randn(self.num_layers, 1,  self.hidden_dim, device=self.device), 
-                torch.randn(self.num_layers, 1,  self.hidden_dim, device=self.device))
+        self.hidden = (
+            torch.randn(self.num_layers, 1, self.hidden_dim, device=self.device),
+            torch.randn(self.num_layers, 1, self.hidden_dim, device=self.device),
+        )
+
 
 class RSSM(nn.Module):
     """
@@ -117,7 +134,17 @@ class RSSM(nn.Module):
     State posterior: q(s_t | h_t, o_t)
     https://github.com/cross32768/PlaNet_PyTorch/blob/master/model.py
     """
-    def __init__(self, state_dim, action_dim, rnn_hidden_dim, device=None, hidden_dim=200, min_stddev=0.1, act=F.relu):
+
+    def __init__(
+        self,
+        state_dim,
+        action_dim,
+        rnn_hidden_dim,
+        device=None,
+        hidden_dim=200,
+        min_stddev=0.1,
+        act=F.relu,
+    ):
         super(RSSM, self).__init__()
         self.state_dim = state_dim
         self.action_dim = action_dim
@@ -128,7 +155,9 @@ class RSSM(nn.Module):
         self.fc_state_mean_prior = nn.Linear(hidden_dim, state_dim)
         self.fc_state_stddev_prior = nn.Linear(hidden_dim, state_dim)
         # Size of embedded image can be bigger! TODO
-        self.fc_rnn_hidden_embedded_obs = nn.Linear(rnn_hidden_dim + state_dim, hidden_dim)
+        self.fc_rnn_hidden_embedded_obs = nn.Linear(
+            rnn_hidden_dim + state_dim, hidden_dim
+        )
         self.fc_state_mean_posterior = nn.Linear(hidden_dim, state_dim)
         self.fc_state_stddev_posterior = nn.Linear(hidden_dim, state_dim)
         self.rnn = nn.GRUCell(hidden_dim, rnn_hidden_dim)
@@ -166,8 +195,9 @@ class RSSM(nn.Module):
         """
         Compute posterior q(s_t | h_t, o_t)
         """
-        hidden = self.act(self.fc_rnn_hidden_embedded_obs(
-            torch.cat([rnn_hidden, state], dim=1)))
+        hidden = self.act(
+            self.fc_rnn_hidden_embedded_obs(torch.cat([rnn_hidden, state], dim=1))
+        )
         mean = self.fc_state_mean_posterior(hidden)
         stddev = F.softplus(self.fc_state_stddev_posterior(hidden)) + self._min_stddev
         return Normal(mean, stddev)

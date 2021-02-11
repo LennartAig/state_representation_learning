@@ -34,9 +34,9 @@ class VideoRecorder(object):
                     mode='rgb_array',
                 )
             """
-            frame = env.render(mode='rgb_array')
+            frame = env.render(mode="rgb_array")
             shape = (self.height, self.width)
-            if frame.shape[0] == 3: #channels first rendering case
+            if frame.shape[0] == 3:  # channels first rendering case
                 frame = frame.transpose((1, 2, 0))
             frame = cv2.resize(frame, shape, interpolation=cv2.INTER_AREA)
             self.frames.append(frame)

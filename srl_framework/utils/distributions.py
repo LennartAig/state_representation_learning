@@ -1,5 +1,5 @@
 import math
-import numpy as np 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -20,7 +20,6 @@ class FixedCategorical(torch.distributions.Categorical):
         out = log_prob.view(actions.size(0), -1).sum(-1).unsqueeze(-1)
         return out
 
-
     def mode(self):
         return self.probs.argmax(dim=-1, keepdim=True)
 
@@ -28,14 +27,14 @@ class FixedCategorical(torch.distributions.Categorical):
 # Normal
 class FixedNormal(torch.distributions.Normal):
     def log_probs(self, actions):
-        return super().log_prob(actions).sum(axis=-1, keepdim = True) #keepdim ?!
-    
+        return super().log_prob(actions).sum(axis=-1, keepdim=True)  # keepdim ?!
+
     def entrop(self):
         return super.entropy().sum(-1)
 
     def mode(self):
         return self.mean
-    
+
 
 # Bernoulli
 class FixedBernoulli(torch.distributions.Bernoulli):
@@ -54,27 +53,28 @@ class Categorical(nn.Module):
         super(Categorical, self).__init__()
 
         init_ = lambda m: init_model(
-            m,
-            nn.init.orthogonal_,
-            lambda x: nn.init.constant_(x, 0),
-            gain=0.01)
+            m, nn.init.orthogonal_, lambda x: nn.init.constant_(x, 0), gain=0.01
+        )
 
-        self.linear = (nn.Linear(num_inputs, num_outputs))
+        self.linear = nn.Linear(num_inputs, num_outputs)
 
     def forward(self, x):
-        #TODO
+        # TODO
         x = self.linear(x)
-        return torch.distributions.Categorical(logits = x)
+        return torch.distributions.Categorical(logits=x)
 
 
 class Gaussian(nn.Module):
-    def __init__(self, num_inputs, num_outputs, fixed_std = True, log_std_min=-20,log_std_max=2):
+    def __init__(
+        self, num_inputs, num_outputs, fixed_std=True, log_std_min=-20, log_std_max=2
+    ):
         super(Gaussian, self).__init__()
 
         self.fixed_std = fixed_std
 
-        init_ = lambda m: init_model(m, nn.init.orthogonal_, lambda x: nn.init.
-                               constant_(x, 0))
+        init_ = lambda m: init_model(
+            m, nn.init.orthogonal_, lambda x: nn.init.constant_(x, 0)
+        )
 
         self.mu_layer = init_(nn.Linear(num_inputs, num_outputs))
         if self.fixed_std:
@@ -87,12 +87,12 @@ class Gaussian(nn.Module):
 
     def forward(self, x):
         mu = self.mu_layer(x)
-        if self.fixed_std: 
+        if self.fixed_std:
             log_std = self.log_std
         else:
             log_std = self.log_std_layer(x)
             log_std = torch.clamp(log_std, self.log_std_min, self.log_std_max)
-        
+
         std = torch.exp(log_std)
         return FixedNormal(mu, std)
 
@@ -101,8 +101,9 @@ class Bernoulli(nn.Module):
     def __init__(self, num_inputs, num_outputs):
         super(Bernoulli, self).__init__()
 
-        init_ = lambda m: init_model(m, nn.init.orthogonal_, lambda x: nn.init.
-                               constant_(x, 0))
+        init_ = lambda m: init_model(
+            m, nn.init.orthogonal_, lambda x: nn.init.constant_(x, 0)
+        )
 
         self.linear = init_(nn.Linear(num_inputs, num_outputs))
 
@@ -138,6 +139,7 @@ class AddBias(nn.Module):
     -----------
         - bias: pytorch nn.init function
     """
+
     def __init__(self, bias):
         super(AddBias, self).__init__()
         self._bias = nn.Parameter(bias.unsqueeze(1))

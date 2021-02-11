@@ -2,6 +2,7 @@
 import numpy as np
 from skimage.util.shape import view_as_windows
 
+
 def random_crop(imgs, output_size):
     """
     Vectorized way to do random crop using sliding windows
@@ -17,18 +18,18 @@ def random_crop(imgs, output_size):
     w1 = np.random.randint(0, crop_max, n)
     h1 = np.random.randint(0, crop_max, n)
     # creates all sliding windows combinations of size (output_size)
-    windows = view_as_windows(
-        imgs, (1, output_size, output_size, 1))[..., 0,:,:, 0]
+    windows = view_as_windows(imgs, (1, output_size, output_size, 1))[..., 0, :, :, 0]
     # selects a random window for each batch element
     cropped_imgs = windows[np.arange(n), w1, h1]
     return cropped_imgs
+
 
 def center_crop_image(image, output_size):
     h, w = image.shape[1:]
     new_h, new_w = output_size, output_size
 
-    top = (h - new_h)//2
-    left = (w - new_w)//2
+    top = (h - new_h) // 2
+    left = (w - new_w) // 2
 
-    image = image[:, top:top + new_h, left:left + new_w]
+    image = image[:, top : top + new_h, left : left + new_w]
     return image

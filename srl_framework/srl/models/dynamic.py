@@ -6,8 +6,9 @@ import torch.optim as optim
 from srl_framework.utils.networks import make_mlp
 from srl_framework.utils.distributions import Gaussian, Categorical
 
+
 class ForwardModel(nn.Module):
-    def __init__(self, state_dim, action_dim, param, envtype, device = None):
+    def __init__(self, state_dim, action_dim, param, envtype, device=None):
         """
         Predict next state given current state and action
         
@@ -20,20 +21,26 @@ class ForwardModel(nn.Module):
             - forward model (torch model): 
         """
         super(ForwardModel, self).__init__()
-        self.deterministic = not(param.STOCHASTIC)
+        self.deterministic = not (param.STOCHASTIC)
         self.envtype = envtype
         self.action_dim = action_dim
-       
 
-        self.mlp, dist_in_dim =  make_mlp(input_dim=state_dim+action_dim,
-            output_dim=0, architecture= [64,64], activation = "ReLU", output_layer=False,
-            batchnorm=False, dropout=False, init = "orthogonal")
+        self.mlp, dist_in_dim = make_mlp(
+            input_dim=state_dim + action_dim,
+            output_dim=0,
+            architecture=[64, 64],
+            activation="ReLU",
+            output_layer=False,
+            batchnorm=False,
+            dropout=False,
+            init="orthogonal",
+        )
         self.dist = Gaussian(dist_in_dim, state_dim)
 
         self.to(device)
         self.optimizer = optim.Adam(self.parameters(), lr=param.LEARNING_RATE)
-        
-    def forward(self, state, action, deterministic = True):
+
+    def forward(self, state, action, deterministic=True):
         """
         Predict next state given current state and action
 
@@ -48,7 +55,8 @@ class ForwardModel(nn.Module):
         """
         if self.envtype != "Box":
             action = F.one_hot(action, self.action_dim).float()
-        if action.ndim < 2: action = action.unsqueeze(-1)
+        if action.ndim < 2:
+            action = action.unsqueeze(-1)
         concat = torch.cat((state, action), dim=1)
         pi = self.dist(self.mlp(concat))
         if deterministic:
@@ -68,12 +76,12 @@ class ForwardModel(nn.Module):
         Return:
         ------
             - delta (torch tensor): diff between state and next state
-        """     
-        return state - self(state,action)
+        """
+        return state - self(state, action)
 
 
 class InverseModel(nn.Module):
-    def __init__(self, state_dim, action_dim, envtype, param, device = None):
+    def __init__(self, state_dim, action_dim, envtype, param, device=None):
         """
         Predict action that transitions between given current state and
         consecutive state
@@ -88,23 +96,30 @@ class InverseModel(nn.Module):
             - inverse model (torch model): 
         """
         super(InverseModel, self).__init__()
-        self.deterministic = not(param.STOCHASTIC)
-        self.mlp, dist_in_dim =  make_mlp(input_dim=state_dim+state_dim,
-            output_dim=0, architecture= [64,64], activation = "ReLU", output_layer=False,
-            batchnorm=False, dropout=False, init = "orthogonal")
+        self.deterministic = not (param.STOCHASTIC)
+        self.mlp, dist_in_dim = make_mlp(
+            input_dim=state_dim + state_dim,
+            output_dim=0,
+            architecture=[64, 64],
+            activation="ReLU",
+            output_layer=False,
+            batchnorm=False,
+            dropout=False,
+            init="orthogonal",
+        )
 
-        if envtype == "Discrete": 
+        if envtype == "Discrete":
             self.dist = Categorical(dist_in_dim, action_dim)
         elif envtype == "Box":
             self.dist = Gaussian(dist_in_dim, action_dim)
         elif envtype == "MultiBinary":
             self.dist = Bernoulli(dist_in_dim, action_dim)
         else:
-            raise NotImplementedError('Given env type is not known')
-        
+            raise NotImplementedError("Given env type is not known")
+
         self.to(device)
         self.optimizer = optim.Adam(self.parameters(), lr=param.LEARNING_RATE)
-        
+
     def forward(self, state, state_tp1, deterministic=True):
         """
         Predict action given current state and next state
@@ -125,11 +140,10 @@ class InverseModel(nn.Module):
         else:
             action_pred = pi.rsample()
         return action_pred
-        
+
 
 class RewardModel(nn.Module):
-    
-    def __init__(self, state_dim, n_rewards, deterministic=False, lr=1e-3, device = None):
+    def __init__(self, state_dim, n_rewards, deterministic=False, lr=1e-3, device=None):
         """
         Predict reward given current state and next state
         Parameters:
@@ -142,10 +156,17 @@ class RewardModel(nn.Module):
             - reward model (torch model):
         """
         super(RewardModel, self).__init__()
-        self.deterministic=deterministic
-        self.mlp, dist_in_dim = make_mlp(input_dim=2*state_dim,
-            output_dim=0, architecture= [64,64], activation = "ReLU", output_layer=False,
-            batchnorm=False, dropout=False, init = "orthogonal")
+        self.deterministic = deterministic
+        self.mlp, dist_in_dim = make_mlp(
+            input_dim=2 * state_dim,
+            output_dim=0,
+            architecture=[64, 64],
+            activation="ReLU",
+            output_layer=False,
+            batchnorm=False,
+            dropout=False,
+            init="orthogonal",
+        )
         self.dist = Gaussian(dist_in_dim, n_rewards)
 
         self.to(device)

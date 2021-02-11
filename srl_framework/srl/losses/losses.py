@@ -7,11 +7,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
-from  torch.distributions import kl as kl
+from torch.distributions import kl as kl
+
 
 def l1_loss(prediction, goal):
     lossfct = nn.L1Loss()
     return lossfct(prediction, goal)
+
 
 def robotic_prior_loss(states, next_states, actions, rewards):
     """
@@ -32,23 +34,35 @@ def robotic_prior_loss(states, next_states, actions, rewards):
     state_diff = next_states - states
     state_diff_norm = state_diff.norm(2, dim=1)
     temp_coherence_loss = (state_diff_norm ** 2).mean()
-        
+
     # Causality loss
     similarity = lambda x, y: torch.exp(-(x - y).norm(2, dim=1) ** 2)
-    causality_loss = similarity(states[dissimilar_pairs[:,0]],
-                                    states[dissimilar_pairs[:,1]]).mean()
-    proportionality_loss = ((state_diff_norm[same_actions_pairs[:, 0]] -
-                                state_diff_norm[same_actions_pairs[:, 1]]) ** 2).mean()
+    causality_loss = similarity(
+        states[dissimilar_pairs[:, 0]], states[dissimilar_pairs[:, 1]]
+    ).mean()
+    proportionality_loss = (
+        (
+            state_diff_norm[same_actions_pairs[:, 0]]
+            - state_diff_norm[same_actions_pairs[:, 1]]
+        )
+        ** 2
+    ).mean()
 
     repeatability_loss = (
-                similarity(states[same_actions_pairs[:, 0]], states[same_actions_pairs[:, 1]]) *
-                (state_diff[same_actions_pairs[:, 0]] - state_diff[same_actions_pairs[:, 1]]).norm(2,
-                                                                                                dim=1) ** 2).mean()
-    losses = {  'temp_coherence_loss':temp_coherence_loss,
-                'causality_loss':causality_loss,
-                'proportionality_loss':proportionality_loss,
-                'repeatability_loss':repeatability_loss}
+        similarity(states[same_actions_pairs[:, 0]], states[same_actions_pairs[:, 1]])
+        * (
+            state_diff[same_actions_pairs[:, 0]] - state_diff[same_actions_pairs[:, 1]]
+        ).norm(2, dim=1)
+        ** 2
+    ).mean()
+    losses = {
+        "temp_coherence_loss": temp_coherence_loss,
+        "causality_loss": causality_loss,
+        "proportionality_loss": proportionality_loss,
+        "repeatability_loss": repeatability_loss,
+    }
     return losses
+
 
 def position_velocity_loss(states, next_states, actions, rewards):
     """
@@ -66,16 +80,34 @@ def position_velocity_loss(states, next_states, actions, rewards):
     dissimilar_pairs = find_dissimilar(actions, rewards, action_limits=None)
     same_actions_pairs = find_same_actions(actions)
     # Temporal coherencedef calc_latent_loss(self, images_seq, actions_seq, rewards_seq,dones_seq):
-    proportionality_loss = ((state_diff_norm[same_actions_pairs[:, 0]] -
-                                state_diff_norm[same_actions_pairs[:, 1]]) ** 2).mean()
+    proportionality_loss = (
+        (
+            state_diff_norm[same_actions_pairs[:, 0]]
+            - state_diff_norm[same_actions_pairs[:, 1]]
+        )
+        ** 2
+    ).mean()
 
     repeatability_loss = (
-                similarity(states[same_actions_pairs[:, 0]], states[same_actions_pairs[:, 1]]) *
-                (state_diff[same_actions_pairs[:, 0]] - state_diff[same_actions_pairs[:, 1]]).norm(2,
-                                                                                                dim=1) ** 2).mean()
+        similarity(states[same_actions_pairs[:, 0]], states[same_actions_pairs[:, 1]])
+        * (
+            state_diff[same_actions_pairs[:, 0]] - state_diff[same_actions_pairs[:, 1]]
+        ).norm(2, dim=1)
+        ** 2
+    ).mean()
     weights = [1, 1, 1, 1]
-    names = ['temp_coherence_loss', 'causality_loss', 'proportionality_loss', 'repeatability_loss']
-    losses = [temp_coherence_loss, causality_loss, proportionality_loss, repeatability_loss]
+    names = [
+        "temp_coherence_loss",
+        "causality_loss",
+        "proportionality_loss",
+        "repeatability_loss",
+    ]
+    losses = [
+        temp_coherence_loss,
+        causality_loss,
+        proportionality_loss,
+        repeatability_loss,
+    ]
 
     total_loss = 0
     for idx in range(len(weights)):
@@ -108,12 +140,12 @@ def invers_loss(actions_pred, actions, envtype):
     Return:
     ------
     """
-    if envtype == 'discrete':
+    if envtype == "discrete":
         inverse_loss = F.cross_entropy(actions_pred, actions)
-    elif envtype == 'continuous':
+    elif envtype == "continuous":
         inverse_loss = F.mse_loss(actions_pred, actions)
     else:
-        raise 'Inverse loss cannot be computed. Unknown action type'
+        raise "Inverse loss cannot be computed. Unknown action type"
 
     return inverse_loss
 
@@ -196,7 +228,8 @@ def log_liklihood(decoded_obs_t, obs_t, std):
         decoded_obs_t = decoded_obs_t.view(num_batches * num_sequences, C, H, W)
         obs_t = obs_t.view(num_batches * num_sequences, C, H, W)
     decoded_obs_dist = Normal(decoded_obs_t, torch.ones_like(decoded_obs_t) * std)
-    return log_liklihood_from_dist(decoded_obs_dist, obs_t) 
+    return log_liklihood_from_dist(decoded_obs_dist, obs_t)
+
 
 def reconstruction_loss(input_image, target_image):
     """
@@ -217,6 +250,7 @@ def calculate_kl_divergence(p_mean, p_std, q_mean, q_std):
     t1 = ((p_mean - q_mean) / q_std).pow_(2)
     return 0.5 * (var_ratio + t1 - 1 - var_ratio.log())
 
+
 def rae_loss(obs_t, decoded_obs_t, state_t, latent_lambda):
     """
     Regul
@@ -230,13 +264,13 @@ def rae_loss(obs_t, decoded_obs_t, state_t, latent_lambda):
     Return:
     ------
         - loss (torch tensor)
-    """ 
+    """
     rec_loss = F.mse_loss(decoded_obs_t, obs_t)
 
-    # Add L2 penalty on latent representation 
+    # Add L2 penalty on latent representation
     latent_loss = (0.5 * state_t.pow(2).sum(1)).mean()
 
-    loss = rec_loss + latent_lambda * latent_loss 
+    loss = rec_loss + latent_lambda * latent_loss
     return loss
 
 
@@ -251,8 +285,9 @@ def generationLoss(obs_t, decoded_obs_t):
     ------
         - loss (torch tensor)
     """
-    generation_loss = F.mse_loss(decoded_obs_t, obs_t, reduction='sum')
+    generation_loss = F.mse_loss(decoded_obs_t, obs_t, reduction="sum")
     return generation_loss
+
 
 def perceptual_similarity_loss(encoded_real, encoded_prediction):
     """
@@ -269,7 +304,9 @@ def perceptual_similarity_loss(encoded_real, encoded_prediction):
         - (torch tensor)
     """
 
-    pretrained_dae_encoding_loss = F.mse_loss(encoded_real, encoded_prediction, reduction='sum')
+    pretrained_dae_encoding_loss = F.mse_loss(
+        encoded_real, encoded_prediction, reduction="sum"
+    )
     return pretrained_dae_encoding_loss
 
 
@@ -307,7 +344,10 @@ def kl_loss(mu, logvar, beta):
     ------
         - Negative KL Divergence  
     """
-    return torch.mean(-0.5 * torch.sum(1 + logvar - mu ** 2 - logvar.exp(), dim = 1), dim = 0)
+    return torch.mean(
+        -0.5 * torch.sum(1 + logvar - mu ** 2 - logvar.exp(), dim=1), dim=0
+    )
+
 
 def kl_divergence_seq(p, q):
     """
@@ -329,7 +369,8 @@ def kl_divergence_seq(p, q):
         # Average along batches, sum along sequences and elements.
         kld += _kld.mean(dim=0).sum()
     return kld
-    
+
+
 def cross_entropy(logits, labels):
     cross_entropy_loss = F.cross_entropy(logits, labels)
     return cross_entropy_loss
@@ -351,54 +392,88 @@ def mutual_unformation_loss(state_t, rewards):
     Y = rewards
     I = 0
     eps = 1e-10
-    p_x = float(1 / np.sqrt(2 * np.pi)) * \
-        th.exp(-th.pow(th.norm((X - th.mean(X, dim=0)) / (th.std(X, dim=0) + eps), 2, dim=1), 2) / 2) + eps
-    p_y = float(1 / np.sqrt(2 * np.pi)) * \
-        th.exp(-th.pow(th.norm((Y - th.mean(Y, dim=0)) / (th.std(Y, dim=0) + eps), 2, dim=1), 2) / 2) + eps
+    p_x = (
+        float(1 / np.sqrt(2 * np.pi))
+        * th.exp(
+            -th.pow(
+                th.norm((X - th.mean(X, dim=0)) / (th.std(X, dim=0) + eps), 2, dim=1), 2
+            )
+            / 2
+        )
+        + eps
+    )
+    p_y = (
+        float(1 / np.sqrt(2 * np.pi))
+        * th.exp(
+            -th.pow(
+                th.norm((Y - th.mean(Y, dim=0)) / (th.std(Y, dim=0) + eps), 2, dim=1), 2
+            )
+            / 2
+        )
+        + eps
+    )
     for x in range(X.shape[0]):
         for y in range(Y.shape[0]):
-            p_xy = float(1 / np.sqrt(2 * np.pi)) * \
-                th.exp(-th.pow(th.norm((th.cat([X[x], Y[y]]) - th.mean(th.cat([X, Y], dim=1), dim=0)) /
-                                        (th.std(th.cat([X, Y], dim=1), dim=0) + eps), 2), 2) / 2) + eps
+            p_xy = (
+                float(1 / np.sqrt(2 * np.pi))
+                * th.exp(
+                    -th.pow(
+                        th.norm(
+                            (
+                                th.cat([X[x], Y[y]])
+                                - th.mean(th.cat([X, Y], dim=1), dim=0)
+                            )
+                            / (th.std(th.cat([X, Y], dim=1), dim=0) + eps),
+                            2,
+                        ),
+                        2,
+                    )
+                    / 2
+                )
+                + eps
+            )
             I += p_xy * th.log(p_xy / (p_x[x] * p_y[y]))
 
     mutual_info_loss = th.exp(-I)
     return mutual_info_loss
 
-def calc_latent_loss(self, images_seq, actions_seq, rewards_seq,dones_seq):
+
+def calc_latent_loss(self, images_seq, actions_seq, rewards_seq, dones_seq):
     # TODO
     features_seq = self.latent.encoder(images_seq)
 
     # Sample from posterior dynamics.
-    (latent1_post_samples, latent2_post_samples),\
-        (latent1_post_dists, latent2_post_dists) =\
-        self.latent.sample_posterior(features_seq, actions_seq)
+    (
+        (latent1_post_samples, latent2_post_samples),
+        (latent1_post_dists, latent2_post_dists),
+    ) = self.latent.sample_posterior(features_seq, actions_seq)
     # Sample from prior dynamics.
-    (latent1_pri_samples, latent2_pri_samples),\
-        (latent1_pri_dists, latent2_pri_dists) =\
-        self.latent.sample_prior(actions_seq)
+    (
+        (latent1_pri_samples, latent2_pri_samples),
+        (latent1_pri_dists, latent2_pri_dists),
+    ) = self.latent.sample_prior(actions_seq)
 
     # KL divergence loss.
     kld_loss = calc_kl_divergence(latent1_post_dists, latent1_pri_dists)
 
     # Log likelihood loss of generated observations.
-    images_seq_dists = self.latent.decoder(
-        [latent1_post_samples, latent2_post_samples])
-    log_likelihood_loss = images_seq_dists.log_prob(
-        images_seq).mean(dim=0).sum()
+    images_seq_dists = self.latent.decoder([latent1_post_samples, latent2_post_samples])
+    log_likelihood_loss = images_seq_dists.log_prob(images_seq).mean(dim=0).sum()
 
     # Log likelihood loss of genarated rewards.
-    rewards_seq_dists = self.latent.reward_predictor([
-        latent1_post_samples[:, :-1],
-        latent2_post_samples[:, :-1],
-        actions_seq, latent1_post_samples[:, 1:],
-        latent2_post_samples[:, 1:]])
-    reward_log_likelihoods =\
-        rewards_seq_dists.log_prob(rewards_seq) * (1.0 - dones_seq)
+    rewards_seq_dists = self.latent.reward_predictor(
+        [
+            latent1_post_samples[:, :-1],
+            latent2_post_samples[:, :-1],
+            actions_seq,
+            latent1_post_samples[:, 1:],
+            latent2_post_samples[:, 1:],
+        ]
+    )
+    reward_log_likelihoods = rewards_seq_dists.log_prob(rewards_seq) * (1.0 - dones_seq)
     reward_log_likelihood_loss = reward_log_likelihoods.mean(dim=0).sum()
 
-    latent_loss =\
-        kld_loss - log_likelihood_loss - reward_log_likelihood_loss
+    latent_loss = kld_loss - log_likelihood_loss - reward_log_likelihood_loss
 
     return latent_loss
 
@@ -406,6 +481,7 @@ def calc_latent_loss(self, images_seq, actions_seq, rewards_seq,dones_seq):
 # ---------------------------------------------------------------- #
 #                               UTILS                              #
 # ---------------------------------------------------------------- #
+
 
 def find_dissimilar(actions, rewards, action_limits):
     """
@@ -424,27 +500,32 @@ def find_dissimilar(actions, rewards, action_limits):
     empty = True
     rewards_np = rewards.cpu().numpy()
     actions_np = actions.cpu().numpy()
-    # Normalize rewards 
+    # Normalize rewards
     rewards_min, rewards_max = np.min(rewards_np), np.max(rewards_np)
     if np.min(rewards_np) <= 0:
-        rewards_normalized = (rewards_np + rewards_min)/(rewards_min+rewards_max)
+        rewards_normalized = (rewards_np + rewards_min) / (rewards_min + rewards_max)
     else:
-        rewards_normalized = (rewards_np - rewards_min)/(-rewards_min+rewards_max)
+        rewards_normalized = (rewards_np - rewards_min) / (-rewards_min + rewards_max)
 
     for i, action in enumerate(actions_np):
-        positions = np.where((actions_np > (action - 0.02)) * (actions_np < (action + 0.02)) *
-        (rewards_normalized < rewards_normalized[i]-0.1)+ (rewards_normalized > rewards_normalized[i]+0.1))[0]
-        positions = positions[np.where(positions>i)]
+        positions = np.where(
+            (actions_np > (action - 0.02))
+            * (actions_np < (action + 0.02))
+            * (rewards_normalized < rewards_normalized[i] - 0.1)
+            + (rewards_normalized > rewards_normalized[i] + 0.1)
+        )[0]
+        positions = positions[np.where(positions > i)]
         if positions.size > 0:
             pairs = np.empty((positions.size, 2), dtype=int)
-            pairs[:,0] = positions
-            pairs[:,1] = np.ones_like(positions, dtype=int) * np.array(i, dtype=int)
+            pairs[:, 0] = positions
+            pairs[:, 1] = np.ones_like(positions, dtype=int) * np.array(i, dtype=int)
             if empty:
                 dissimilar_pairs = pairs
                 empty = False
             else:
                 dissimilar_pairs = np.append(dissimilar_pairs, pairs, axis=0)
     return dissimilar_pairs
+
 
 def find_same_actions(actions):
     """
@@ -462,12 +543,14 @@ def find_same_actions(actions):
     similar_pairs = np.array([])
     actions_np = actions.cpu().numpy()
     for i, action in enumerate(actions_np):
-        positions = np.where((actions_np > (action - 0.02)) * (actions_np < (action + 0.02)))[0]
-        positions = positions[np.where(positions>i)].astype(int)
+        positions = np.where(
+            (actions_np > (action - 0.02)) * (actions_np < (action + 0.02))
+        )[0]
+        positions = positions[np.where(positions > i)].astype(int)
         if positions.size > 0:
             pairs = np.empty((positions.size, 2), dtype=int)
-            pairs[:,0] = positions
-            pairs[:,1] = np.ones_like(positions, dtype=int) * np.array(i, dtype=int)
+            pairs[:, 0] = positions
+            pairs[:, 1] = np.ones_like(positions, dtype=int) * np.array(i, dtype=int)
             if empty:
                 similar_pairs = pairs
                 empty = False

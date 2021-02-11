@@ -5,26 +5,29 @@ import numpy as np
 import gym
 from gym.envs.registration import register
 
+
 def make(
-        domain_name,
-        task_name,
-        seed=1,
-        visualize_reward=True,
-        from_pixels=False,
-        height=84,
-        width=84,
-        camera_id=0,
-        frame_skip=1,
-        episode_length=1000,
-        environment_kwargs=None,
-        time_limit=None,
-        channels_first=True,
-        normalize_obs=True
+    domain_name,
+    task_name,
+    seed=1,
+    visualize_reward=True,
+    from_pixels=False,
+    height=84,
+    width=84,
+    camera_id=0,
+    frame_skip=1,
+    episode_length=1000,
+    environment_kwargs=None,
+    time_limit=None,
+    channels_first=True,
+    normalize_obs=True,
 ):
-    env_id = 'dmc_%s_%s_%s-v1' % (domain_name, task_name, seed)
+    env_id = "dmc_%s_%s_%s-v1" % (domain_name, task_name, seed)
 
     if from_pixels:
-        assert not visualize_reward, 'cannot use visualize reward when learning from pixels'
+        assert (
+            not visualize_reward
+        ), "cannot use visualize reward when learning from pixels"
 
     # shorten episode length
     max_episode_steps = (episode_length + frame_skip - 1) // frame_skip
@@ -32,12 +35,12 @@ def make(
     if not env_id in gym.envs.registry.env_specs:
         task_kwargs = {}
         if seed is not None:
-            task_kwargs['random'] = seed
+            task_kwargs["random"] = seed
         if time_limit is not None:
-            task_kwargs['time_limit'] = time_limit
+            task_kwargs["time_limit"] = time_limit
         register(
             id=env_id,
-            entry_point='envs.dmc_wrapper:DMCWrapper',
+            entry_point="envs.dmc_wrapper:DMCWrapper",
             kwargs=dict(
                 domain_name=domain_name,
                 task_name=task_name,
@@ -50,7 +53,7 @@ def make(
                 camera_id=camera_id,
                 frame_skip=frame_skip,
                 channels_first=channels_first,
-                normalize_obs=normalize_obs
+                normalize_obs=normalize_obs,
             ),
             max_episode_steps=max_episode_steps,
         )
@@ -91,6 +94,7 @@ def make(
             )
     return env   
 """
+
 
 def _spec_to_box(spec):
     def extract_min_max(s):
@@ -136,9 +140,11 @@ class DMCWrapper(core.Env):
         frame_skip=1,
         environment_kwargs=None,
         channels_first=True,
-        normalize_obs=True
+        normalize_obs=True,
     ):
-        assert 'random' in task_kwargs, 'please specify a seed, for deterministic behaviour'
+        assert (
+            "random" in task_kwargs
+        ), "please specify a seed, for deterministic behaviour"
         self._from_pixels = from_pixels
         self._height = height
         self._width = width
@@ -146,25 +152,22 @@ class DMCWrapper(core.Env):
         self._frame_skip = frame_skip
         self._channels_first = channels_first
         self._norm_obs = normalize_obs
-            
-        if domain_name == 'manipulation':
-            self._env  = manipulation.load(task_name, seed=1)
+
+        if domain_name == "manipulation":
+            self._env = manipulation.load(task_name, seed=1)
         else:
             self._env = suite.load(
                 domain_name=domain_name,
                 task_name=task_name,
                 task_kwargs=task_kwargs,
                 visualize_reward=visualize_reward,
-                environment_kwargs=environment_kwargs
+                environment_kwargs=environment_kwargs,
             )
 
         # true and normalized action spaces
         self._true_action_space = _spec_to_box([self._env.action_spec()])
         self._norm_action_space = spaces.Box(
-            low=-1.0,
-            high=1.0,
-            shape=self._true_action_space.shape,
-            dtype=np.float32
+            low=-1.0, high=1.0, shape=self._true_action_space.shape, dtype=np.float32
         )
 
         # create observation space
@@ -177,15 +180,13 @@ class DMCWrapper(core.Env):
             self._observation_space = _spec_to_box(
                 self._env.observation_spec().values()
             )
-        if not domain_name == 'manipulation':    
-            self._state_space = _spec_to_box(
-                    self._env.observation_spec().values()
-            )
-        
+        if not domain_name == "manipulation":
+            self._state_space = _spec_to_box(self._env.observation_spec().values())
+
         self.current_state = None
 
         # set seed
-        self.seed(seed=task_kwargs.get('random', 1))
+        self.seed(seed=task_kwargs.get("random", 1))
 
     def __getattr__(self, name):
         return getattr(self._env, name)
@@ -193,11 +194,9 @@ class DMCWrapper(core.Env):
     def _get_obs(self, time_step):
         if self._from_pixels:
             obs = self.render(
-                height=self._height,
-                width=self._width,
-                camera_id=self._camera_id
+                height=self._height, width=self._width, camera_id=self._camera_id
             )
-            #if self._norm_obs:
+            # if self._norm_obs:
             #    obs = obs/255.0
             if self._channels_first:
                 obs = obs.transpose(2, 0, 1).copy()
@@ -236,7 +235,7 @@ class DMCWrapper(core.Env):
         action = self._convert_action(action)
         assert self._true_action_space.contains(action)
         reward = 0
-        extra = {'internal_state': self._env.physics.get_state().copy()}
+        extra = {"internal_state": self._env.physics.get_state().copy()}
 
         for _ in range(self._frame_skip):
             time_step = self._env.step(action)
@@ -246,7 +245,7 @@ class DMCWrapper(core.Env):
                 break
         obs = self._get_obs(time_step)
         self.current_state = _flatten_obs(time_step.observation)
-        extra['discount'] = time_step.discount
+        extra["discount"] = time_step.discount
         return obs, reward, done, extra
 
     def reset(self):
@@ -255,11 +254,9 @@ class DMCWrapper(core.Env):
         obs = self._get_obs(time_step)
         return obs
 
-    def render(self, mode='rgb_array', height=None, width=None, camera_id=0):
-        assert mode == 'rgb_array', 'only support rgb_array mode, given %s' % mode
+    def render(self, mode="rgb_array", height=None, width=None, camera_id=0):
+        assert mode == "rgb_array", "only support rgb_array mode, given %s" % mode
         height = height or self._height
         width = width or self._width
         camera_id = camera_id or self._camera_id
-        return self._env.physics.render(
-            height=height, width=width, camera_id=camera_id
-        )
+        return self._env.physics.render(height=height, width=width, camera_id=camera_id)

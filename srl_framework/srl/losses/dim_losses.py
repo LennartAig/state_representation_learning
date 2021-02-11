@@ -1,20 +1,20 @@
-
 import math
 
 import torch
 import torch.nn.functional as F
 
+
 def infonce_loss(l, m):
-    '''Computes the noise contrastive estimation-based loss, a.k.a. infoNCE.
+    """Computes the noise contrastive estimation-based loss, a.k.a. infoNCE.
     Note that vectors should be sent as 1x1.
     Args:
         l: Local feature map.
         m: Multiple globals feature map.
     Returns:
         torch.Tensor: Loss.
-    '''
+    """
     N, units, n_locals = l.size()
-    _, _ , n_multis = m.size()
+    _, _, n_multis = m.size()
 
     # First we make the input tensors the right shape.
     l_p = l.permute(0, 2, 1)
@@ -34,8 +34,12 @@ def infonce_loss(l, m):
     n_mask = 1 - mask
 
     # Masking is done by shifting the diagonal before exp.
-    u_n = (n_mask * u_n) - (10. * (1 - n_mask))  # mask out "self" examples
-    u_n = u_n.reshape(N, N * n_locals, n_multis).unsqueeze(dim=1).expand(-1, n_locals, -1, -1)
+    u_n = (n_mask * u_n) - (10.0 * (1 - n_mask))  # mask out "self" examples
+    u_n = (
+        u_n.reshape(N, N * n_locals, n_multis)
+        .unsqueeze(dim=1)
+        .expand(-1, n_locals, -1, -1)
+    )
 
     # Since this is multiclass, we concat the positive along the class dimension before performing log softmax.
     pred_lgt = torch.cat([u_p, u_n], dim=2)
@@ -48,14 +52,14 @@ def infonce_loss(l, m):
 
 
 def donsker_varadhan_loss(l, m):
-    '''
+    """
     Note that vectors should be sent as 1x1.
     Args:
         l: Local feature map.
         m: Multiple globals feature map.
     Returns:
         torch.Tensor: Loss.
-    '''
+    """
     N, units, n_locals = l.size()
     n_multis = m.size(2)
 
@@ -82,7 +86,11 @@ def donsker_varadhan_loss(l, m):
     # Negative term is the log sum exp of the off-diagonal terms. Mask out the positive.
     u -= 10 * (1 - n_mask)
     u_max = torch.max(u)
-    E_neg = torch.log((n_mask * torch.exp(u - u_max)).sum() + 1e-6) + u_max - math.log(n_mask.sum())
+    E_neg = (
+        torch.log((n_mask * torch.exp(u - u_max)).sum() + 1e-6)
+        + u_max
+        - math.log(n_mask.sum())
+    )
     loss = E_neg - E_pos
 
     return loss
